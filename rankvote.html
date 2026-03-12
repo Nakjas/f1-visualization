@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Driver Rankings & Voting</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🏎️ F1 Driver Rankings</h1>
+            <p class="subtitle">Latest Race Results & Cumulative Season Points</p>
+            <div class="header-info">
+                <span id="lastUpdate">Last Updated: --</span>
+                <button id="refreshBtn" class="refresh-btn">Refresh Data</button>
+            </div>
+        </header>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+
+        <main class="main-content">
+            <!-- Charts Section (Left) -->
+            <section class="charts-section">
+                <h2>Season Analysis</h2>
+                
+                <!-- Bump Chart for Position Changes -->
+                <div class="chart-container bump-chart-container">
+                    <h3>Position Changes Across Races</h3>
+                    <canvas id="bumpChart"></canvas>
+                </div>
+
+                <!-- Bar Chart for Season Points -->
+                <div class="chart-container bar-chart-container">
+                    <h3>Cumulative Season Points by Driver</h3>
+                    <canvas id="pointsChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Voting Section (Right) -->
+            <section class="voting-section">
+                <h2>Vote for Your Favorite Driver</h2>
+                
+                <!-- Driver Selection for Voting -->
+                <div class="driver-selection">
+                    <label for="driverSelect">Select a Driver:</label>
+                    <select id="driverSelect" class="driver-select">
+                        <option value="">-- Choose a driver --</option>
+                    </select>
+                    <button id="voteSubmitBtn" class="vote-submit-btn">Submit Vote</button>
+                </div>
+
+                <!-- Voting Results -->
+                <div class="voting-results">
+                    <h3>Voting Results</h3>
+                    <div id="votesDisplay" class="votes-display">
+                        <p class="loading-text">Loading voting data...</p>
+                    </div>
+                </div>
+
+                <!-- Voting Statistics -->
+                <div class="voting-stats">
+                    <h3>Statistics</h3>
+                    <div id="votingStats" class="stats-box">
+                        <p>Total Votes: <span id="totalVotes">0</span></p>
+                        <p>Your Vote: <span id="yourVote">Not voted</span></p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Data sourced from <a href="https://openf1.org/" target="_blank">OpenF1 API</a></p>
+            <p>&copy; 2026 F1 Rankings & Voting System</p>
+        </footer>
+    </div>
+
+    <script src="ongoing.js"></script>
+</body>
+</html>
