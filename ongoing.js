@@ -1,8 +1,6 @@
-// ========== F1 Ranking & Voting System ==========
-// Configuration
 const CONFIG = {
     API_BASE: 'https://api.openf1.org/v1',
-    REFRESH_INTERVAL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+    REFRESH_INTERVAL: 24 * 60 * 60 * 1000,
     LOCAL_STORAGE_KEYS: {
         DRIVERS_DATA: 'f1_drivers_data',
         RACE_HISTORY: 'f1_race_history',
@@ -12,7 +10,6 @@ const CONFIG = {
     }
 };
 
-// State Management
 const state = {
     drivers: [],
     raceHistory: [],
@@ -22,7 +19,8 @@ const state = {
     currentSeason: new Date().getFullYear(),
     chartInstances: {
         bump: null,
-        bar: null
+        restOfGrid: null,
+        vote: null
     }
 };
 
@@ -31,11 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
-    console.log('Initializing F1 Ranking & Voting System...');
-    
     loadVotesFromStorage();
-    
     const lastUpdate = getLastUpdateTime();
+    
     if (shouldRefreshData(lastUpdate)) {
         await fetchAndDisplayData();
     } else {
@@ -52,91 +48,80 @@ async function initializeApp() {
         if (shouldRefreshData(lastUpdate)) {
             fetchAndDisplayData();
         }
-    }, 60 * 60 * 1000); // Check every hour
+    }, 60 * 60 * 1000);
 }
 
 async function fetchAndDisplayData() {
-    showStatus('Fetching latest F1 data...', 'info');
-    
+    showStatus('Fetching latest data...', 'info');
     try {
         const standings = await fetchSeasonStandings();
-        
         if (standings && standings.length > 0) {
             state.drivers = standings;
             saveDataToStorage(standings);
             updateLastUpdateTime();
-            Charts();
+            displayCharts();
             populateDriverSelect();
             displayVotingResults();
             showStatus('Data refreshed successfully!', 'success');
         } else {
-            showStatus('No data available. Please try again later.', 'error');
+            showStatus('No data available. Loading sample.', 'error');
             loadSampleData();
             displayCharts();
             populateDriverSelect();
             displayVotingResults();
         }
     } catch (error) {
-        console.error('Error fetching data:', error);
         showStatus('Error fetching data. Using cached data if available.', 'error');
         loadDataFromStorage();
         displayCharts();
         populateDriverSelect();
-        displayVotingResults);
-        displayRankingsTable();
+        displayVotingResults();
     }
 }
 
 async function fetchSeasonStandings() {
     try {
         const season = state.currentSeason;
-        
         const response = await fetch(`${CONFIG.API_BASE}/drivers?session_key=latest`);
-        
         if (!response.ok) {
             throw new Error(`API Error: ${response.status}`);
         }
-        
         const drivers = await response.json();
-        
         const resultsResponse = await fetch(`${CONFIG.API_BASE}/results?session_key=latest`);
         const results = await resultsResponse.json();
-        
         return processDriversData(drivers, results, season);
-        
     } catch (error) {
-        console.error('Fetch error:', error);
         throw error;
     }
 }
 
 function processDriversData(drivers, results, season) {
     const processedDrivers = [];
-    
     const resultMap = {};
     if (results && Array.isArray(results)) {
         results.forEach(result => {
             resultMap[result.driver_number] = result;
         });
     }
-    
     if (drivers && Array.isArray(drivers)) {
         drivers.forEach((driver, index) => {
             const raceResult = resultMap[driver.driver_number] || {};
-            
             processedDrivers.push({
                 position: index + 1,
                 name: `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Unknown',
                 team: driver.team_name || 'Unknown',
                 racePoints: raceResult.points || 0,
-                seasonPoints: raceResult.points || 0, // This may need adjustment based on actual API response
+                seasonPoints: raceResult.points || 0,
                 driverId: driver.driver_number || index + 1
             });
         });
     }
-    
     return processedDrivers.sort((a, b) => a.position - b.position);
-}, driverId: 1 },
+}
+
+function loadSampleData() {
+    state.drivers = [
+        { position: 1, name: 'Max Verstappen', team: 'Red Bull Racing', racePoints: 25, seasonPoints: 393, driverId: 1 },
         { position: 2, name: 'Lando Norris', team: 'McLaren', racePoints: 18, seasonPoints: 358, driverId: 2 },
         { position: 3, name: 'Carlos Sainz', team: 'Ferrari', racePoints: 15, seasonPoints: 308, driverId: 3 },
         { position: 4, name: 'Lewis Hamilton', team: 'Mercedes', racePoints: 12, seasonPoints: 285, driverId: 4 },
@@ -147,188 +132,13 @@ function processDriversData(drivers, results, season) {
         { position: 9, name: 'Yuki Tsunoda', team: 'Racing Bulls', racePoints: 2, seasonPoints: 52, driverId: 9 },
         { position: 10, name: 'Sergio Pérez', team: 'Red Bull Racing', racePoints: 1, seasonPoints: 45, driverId: 10 }
     ];
-    
     state.raceHistory = [
         {
             raceName: 'Australia',
-// ========== Display Functions ==========
-function populateDriverSelect() {
-    const driverSelect = document.getElementById('driverSelect');
-    driverSelect.innerHTML = '<option value="">-- Choose a driver --</option>';
-    
-    state.drivers.forEach(driver => {
-        const option = document.createElement('option');
-        option.value = driver.driverId;
-        option.textContent = `${driver.position}. ${driver.name} (${driver.team})`;
-        driverSelect.appendChild(option);
-    });
-}
-
-function displayCharts() {
-    const bumpCanvas = document.getElementById('bumpChart');
-    const pointsCanvas = document.getElementById('pointsChart');
-    
-    if (!bumpCanvas || !pointsCanvas) {
-        console.error('Chart containers not found');
-        return;
-    }
-    
-    if (state.chartInstances.bump) {
-        state.chartInstances.bump.destroy();
-    }
-    if (state.chartInstances.bar) {
-        state.chartInstances.bar.destroy();
-    }
-    
-    renderBumpChart(bumpCanvas);
-    renderPointsChart(pointsCanvas);
-}
-
-function renderBumpChart(canvas) {
-    const ctx = canvas.getContext('2d');
-    
-    const datasets = [];
-    const colors = [
-    const yourVoteSpan = document.getElementById('yourVote');
-    
-    const sortedVotes = Object.entries(state.votes)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-    
-    const totalVotes = Object.values(state.votes).reduce((sum, count) => sum + count, 0);
-    totalVotesSpan.textContent = totalVotes;
-    
-    if (state.userVote) {
-        yourVoteSpan.textContent = state.userVote.driverName;
-        yourVoteSpan.style.color = 'var(--accent-yellow)';
-    } else {
-        yourVoteSpan.textContent = 'Not voted';
-        yourVoteSpan.style.color = '#888';
-    }ons.find(p => p.driverId === driver.driverId);
-            return racePosition ? racePosition.position : null;
-        });
-        
-        datasets.push({
-            label: driver.name,
-            data: data,
-            borderColor: colors[index % colors.length],
-            backgroundColor: colors[index % colors.length],
-            tension: 0.4,
-            borderWidth: 2,
-            pointRadius: 4,
-            pointBackgroundColor: colors[index % colors.length],
-            fill: false
-        });
-    });
-    
-    state.chartInstances.bump = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: state.raceHistory.map(race => race.raceName),
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    reverse: true,
-                    min: 1,
-                    max: 10,
-                    ticks: {
-                        color: '#e8e8e8',
-                        font: { size: 11 }
-                    },
-                    grid: {
-                        color: '#2a3f5f',
-                        drawBorder: false
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#e8e8e8',
-                        font: { size: 11 }
-                    },
-                    grid: {
-                        color: '#2a3f5f',
-                        display: false
-                    }
-                }
-            }
-        }) {
-    const driverSelect = document.getElementById('driverSelect');
-    const driverId = parseInt(driverSelect.value);
-    
-    if (!driverId) {
-        showStatus('Please select a driver to vote for', 'error');
-        return;
-    }
-    
-    const driver = state.drivers.find(d => d.driverId === driverId);
-    if (!driver) {
-        showStatus('Driver not found', 'error');
-        return;
-    }
-    
-    state.userVote = { driverId, driverName: driver.name };
-    saveUserVoteToStorage(state.userVote);
-    
-    if (!state.votes[driver.name]) {
-        state.votes[driver.name] = 0;
-    }
-    state.votes[driver.name]++;
-    saveVotesToStorage();
-    
-    driverSelect.value = '';
-    displayVotingResults();
-    
-    showStatus(`Vote recorded for ${driver.n> d.seasonPoints),
-                backgroundColor: colors.slice(0, sortedDrivers.length),
-                borderColor: '#c41e3a',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-        
-        const raceHistory = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.RACE_HISTORY);
-        if (raceHistory) {
-            state.raceHistory = JSON.parse(raceHistory);
-        }
-    } catch (error) {
-        console.error('Error loading data from storage:', error);
-    }
-}
-
-function saveRaceHistoryToStorage(raceHistory) {
-    try {
-        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.RACE_HISTORY, JSON.stringify(raceHistory));
-    } catch (error) {
-        console.error('Error saving race history
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: '#e8e8e8',
-                        font: { size: 11 }
-                    },
-                    grid: { color: '#2a3f5f' }
-                },
-                y: {
-                    ticks: {
-                        color: '#e8e8e8',
-                        font: { size: 11 }
-                    },
-                    grid: { display: false }
-                }
-            }
-        }position: 4 }, { driverId: 5, position: 5 }, { driverId: 6, position: 6 },
-                { driverId: 7, position: 7 }, { driverId: 8, position: 8 }, { driverId: 9, position: 9 }, { driverId: 10, position: 10 }
+            positions: [
+                { driverId: 1, position: 4 }, { driverId: 2, position: 2 }, { driverId: 3, position: 1 },
+                { driverId: 4, position: 8 }, { driverId: 5, position: 3 }, { driverId: 6, position: 5 },
+                { driverId: 7, position: 7 }, { driverId: 8, position: 6 }, { driverId: 9, position: 9 }, { driverId: 10, position: 10 }
             ]
         },
         {
@@ -340,102 +150,234 @@ function saveRaceHistoryToStorage(raceHistory) {
             ]
         }
     ];
-    
     saveDataToStorage(state.drivers);
-    saveRaceHistoryToStorage(state.raceHistorye Russell', team: 'Mercedes', racePoints: 6, seasonPoints: 245 },
-        { position: 8, name: 'Fernando Alonso', team: 'Aston Martin', racePoints: 4, seasonPoints: 68 },
-        { position: 9, name: 'Yuki Tsunoda', team: 'Racing Bulls', racePoints: 2, seasonPoints: 52 },
-        { position: 10, name: 'Sergio Pérez', team: 'Red Bull Racing', racePoints: 1, seasonPoints: 45 }
-    ];
-    saveDataToStorage(state.drivers);
+    saveRaceHistoryToStorage(state.raceHistory);
     updateLastUpdateTime();
 }
 
-function displayRankingsTable() {
-    const tbody = document.getElementById('driversTableBody');
-    tbody.innerHTML = '';
-    
-    if (state.drivers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No driver data available</td></tr>';
-        return;
-    }
-    
+function populateDriverSelect() {
+    const driverSelect = document.getElementById('driverSelect');
+    if (!driverSelect) return;
+    driverSelect.innerHTML = '<option value="">-- Choose a driver --</option>';
     state.drivers.forEach(driver => {
-        const row = document.createElement('tr');
-        const userVoteClass = state.userVote?.driverId === driver.driverId ? 'voted' : '';
-        
-        row.innerHTML = `
-            <td>${driver.position}</td>
-            <td>${driver.name}</td>
-            <td>${driver.team || 'N/A'}</td>
-            <td>${driver.racePoints}</td>
-            <td><strong>${driver.seasonPoints}</strong></td>
-            <td>
-                <button class="vote-btn ${userVoteClass}" 
-                        onclick="voteForDriver(event, ${driver.driverId}, '${driver.name.replace(/'/g, "\\'")}')">
-                    ${state.userVote?.driverId === driver.driverId ? '✓ Voted' : 'Vote'}
-                </button>
-            </td>
+        const option = document.createElement('option');
+        option.value = driver.driverId;
+        option.textContent = `${driver.position}. ${driver.name} (${driver.team})`;
+        driverSelect.appendChild(option);
+    });
+}
+
+function displayCharts() {
+    renderBumpChart();
+    renderLatestRaceResults();
+    renderVotingChart();
+}
+
+function renderBumpChart() {
+    const chartDom = document.getElementById('bumpChart');
+    if (!chartDom) return;
+    if (!state.chartInstances.bump) {
+        state.chartInstances.bump = echarts.init(chartDom);
+    }
+    const races = state.raceHistory.map(race => race.raceName);
+    const seriesData = state.drivers.map(driver => {
+        const dataPoints = state.raceHistory.map(race => {
+            const pos = race.positions.find(p => p.driverId === driver.driverId);
+            return pos ? pos.position : null;
+        });
+        return {
+            name: driver.name,
+            type: 'line',
+            smooth: true,
+            symbolSize: 8,
+            data: dataPoints
+        };
+    });
+    const option = {
+        tooltip: { trigger: 'item' },
+        grid: { left: '5%', right: '15%', bottom: '10%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: races,
+            axisLabel: { color: '#e8e8e8' }
+        },
+        yAxis: {
+            type: 'value',
+            inverse: true,
+            min: 1,
+            max: 10,
+            axisLabel: { color: '#e8e8e8' },
+            splitLine: { lineStyle: { color: '#2a3f5f' } }
+        },
+        series: seriesData
+    };
+    state.chartInstances.bump.setOption(option);
+}
+
+function renderLatestRaceResults() {
+    const sortedDrivers = [...state.drivers].sort((a, b) => a.position - b.position);
+    const top5 = sortedDrivers.slice(0, 5);
+    const restOfGrid = sortedDrivers.slice(5);
+    renderTop5HTML(top5);
+    renderRestOfGridChart(restOfGrid);
+}
+
+function renderTop5HTML(top5Drivers) {
+    const container = document.getElementById('top5Container');
+    if (!container) return;
+    container.innerHTML = '';
+    const maxPoints = top5Drivers.length > 0 ? (top5Drivers[0].racePoints || 25) : 25;
+    top5Drivers.forEach((driver, index) => {
+        const heightPct = Math.max((driver.racePoints / maxPoints) * 100, 15);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'top5-bar-wrapper';
+        wrapper.innerHTML = `
+            <div class="top5-info">
+                <img src="placeholder_car.png" alt="${driver.team} Car" class="top5-car-img" />
+                <span class="top5-driver-name">${driver.name.split(' ').pop()}</span>
+                <span class="top5-points">${driver.racePoints} pts</span>
+            </div>
+            <div class="top5-bar pos-${index + 1}" style="height: ${heightPct}%"></div>
         `;
-        tbody.appendChild(row);
+        container.appendChild(wrapper);
+    });
+}
+
+function renderRestOfGridChart(restDrivers) {
+    const canvas = document.getElementById('restOfGridChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (state.chartInstances.restOfGrid) {
+        state.chartInstances.restOfGrid.destroy();
+    }
+    state.chartInstances.restOfGrid = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: restDrivers.map(d => d.name),
+            datasets: [{
+                label: 'Race Points',
+                data: restDrivers.map(d => d.racePoints),
+                backgroundColor: '#2a3f5f',
+                borderColor: '#60a5fa',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { color: '#2a3f5f' },
+                    ticks: { color: '#e8e8e8' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#e8e8e8' }
+                }
+            }
+        }
+    });
+}
+
+function renderVotingChart() {
+    const canvas = document.getElementById('voteChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (state.chartInstances.vote) {
+        state.chartInstances.vote.destroy();
+    }
+    const sortedVotes = Object.entries(state.votes)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    const labels = sortedVotes.map(v => v[0]);
+    const data = sortedVotes.map(v => v[1]);
+    const totalVotes = data.reduce((sum, count) => sum + count, 0);
+    const totalVotesSpan = document.getElementById('totalVotes');
+    if (totalVotesSpan) totalVotesSpan.textContent = totalVotes;
+    const yourVoteSpan = document.getElementById('yourVote');
+    if (yourVoteSpan) {
+        if (state.userVote) {
+            yourVoteSpan.textContent = state.userVote.driverName;
+            yourVoteSpan.style.color = 'var(--accent-yellow)';
+        } else {
+            yourVoteSpan.textContent = 'Not voted';
+            yourVoteSpan.style.color = '#888';
+        }
+    }
+    state.chartInstances.vote = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Votes',
+                data: data,
+                backgroundColor: '#c41e3a',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const percentage = totalVotes > 0 ? ((context.raw / totalVotes) * 100).toFixed(1) : 0;
+                            return `${context.raw} votes (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#e8e8e8', font: { size: 12 } }
+                }
+            }
+        }
     });
 }
 
 function displayVotingResults() {
-    const votesDisplay = document.getElementById('votesDisplay');
-    const totalVotesSpan = document.getElementById('totalVotes');
-    
-    const sortedVotes = Object.entries(state.votes)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10); // Top 10 votes
-    
-    const totalVotes = Object.values(state.votes).reduce((sum, count) => sum + count, 0);
-    totalVotesSpan.textContent = totalVotes;
-    
-    if (sortedVotes.length === 0) {
-        votesDisplay.innerHTML = '<p class="loading-text">No votes yet. Be the first to vote!</p>';
-        return;
-    }
-    
-    votesDisplay.innerHTML = sortedVotes
-        .map(([name, count]) => `
-            <div class="vote-item">
-                <span class="vote-item-name">${name}</span>
-                <span class="vote-item-count">${count}</span>
-            </div>
-        `)
-        .join('');
+    renderVotingChart();
 }
 
-// ========== Voting System ==========
 function voteForDriver(event, driverId, driverName) {
-    event.preventDefault();
-    
-    // Save user's vote
+    if (event) event.preventDefault();
+    if (!driverId && !driverName) {
+        const driverSelect = document.getElementById('driverSelect');
+        driverId = parseInt(driverSelect.value);
+        if (!driverId) {
+            showStatus('Please select a driver to vote for', 'error');
+            return;
+        }
+        const driver = state.drivers.find(d => d.driverId === driverId);
+        if (!driver) {
+            showStatus('Driver not found', 'error');
+            return;
+        }
+        driverName = driver.name;
+    }
     state.userVote = { driverId, driverName };
     saveUserVoteToStorage({ driverId, driverName });
-    
-    // Record vote
     if (!state.votes[driverName]) {
         state.votes[driverName] = 0;
     }
     state.votes[driverName]++;
     saveVotesToStorage();
-    
-    // Refresh display
-    displayRankingsTable();
+    const driverSelect = document.getElementById('driverSelect');
+    if (driverSelect) driverSelect.value = '';
     displayVotingResults();
-    
     showStatus(`Vote recorded for ${driverName}!`, 'success');
 }
 
-// ========== Storage Functions ==========
 function saveDataToStorage(drivers) {
     try {
         localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.DRIVERS_DATA, JSON.stringify(drivers));
-    } catch (error) {
-        console.error('Error saving data to storage:', error);
-    }
+    } catch (error) {}
 }
 
 function loadDataFromStorage() {
@@ -444,48 +386,42 @@ function loadDataFromStorage() {
         if (data) {
             state.drivers = JSON.parse(data);
         }
-    } catch (error) {
-        console.error('Error loading data from storage:', error);
-    }
+    } catch (error) {}
+}
+
+function saveRaceHistoryToStorage(raceHistory) {
+    try {
+        localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.RACE_HISTORY, JSON.stringify(raceHistory));
+    } catch (error) {}
 }
 
 function saveVotesToStorage() {
     try {
         localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.VOTES, JSON.stringify(state.votes));
-    } catch (error) {
-        console.error('Error saving votes:', error);
-    }
+    } catch (error) {}
 }
 
 function loadVotesFromStorage() {
     try {
         const votes = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.VOTES);
-        if (votes) {
-            state.votes = JSON.parse(votes);
-        }
-        
+        if (votes) state.votes = JSON.parse(votes);
         const userVote = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.USER_VOTE);
-        if (userVote) {
-            state.userVote = JSON.parse(userVote);
-        }
-    } catch (error) {
-        console.error('Error loading votes from storage:', error);
-    }
+        if (userVote) state.userVote = JSON.parse(userVote);
+        const raceHistory = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.RACE_HISTORY);
+        if (raceHistory) state.raceHistory = JSON.parse(raceHistory);
+    } catch (error) {}
 }
 
 function saveUserVoteToStorage(vote) {
     try {
         localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.USER_VOTE, JSON.stringify(vote));
-    } catch (error) {
-        console.error('Error saving user vote:', error);
-    }
+    } catch (error) {}
 }
 
 function updateLastUpdateTime() {
     const now = new Date().toISOString();
     state.lastUpdate = now;
     localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.LAST_UPDATE, now);
-    
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
         lastUpdateEl.textContent = `Last Updated: ${formatDateTime(now)}`;
@@ -503,18 +439,11 @@ function shouldRefreshData(lastUpdate) {
     return timeDiff > CONFIG.REFRESH_INTERVAL;
 }
 
-// ========== UI Helpers ==========
 function showStatus(message, type = 'info') {
     const statusEl = document.getElementById('statusMessage');
-    
-    const voteSubmitBtn = document.getElementById('voteSubmitBtn');
-    if (voteSubmitBtn) {
-        voteSubmitBtn.addEventListener('click', voteForDriver);
-    }
+    if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.className = `status-message ${type}`;
-    
-    // Auto-clear after 5 seconds (except for errors)
     if (type !== 'error') {
         setTimeout(() => {
             statusEl.textContent = '';
@@ -534,7 +463,6 @@ function formatDateTime(isoString) {
     });
 }
 
-// ========== Event Listeners ==========
 function setupEventListeners() {
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
@@ -542,7 +470,8 @@ function setupEventListeners() {
             fetchAndDisplayData();
         });
     }
+    const voteSubmitBtn = document.getElementById('voteSubmitBtn');
+    if (voteSubmitBtn) {
+        voteSubmitBtn.addEventListener('click', (e) => voteForDriver(e, null, null));
+    }
 }
-
-// Initialize app
-console.log('F1 Ranking & Voting System loaded');
