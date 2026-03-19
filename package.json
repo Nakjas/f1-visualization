@@ -1,0 +1,25 @@
+{
+  "name": "f1rankingvoting2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ongoing.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nakjas/f1-visualization.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Nakjas/f1-visualization/issues"
+  },
+  "homepage": "https://github.com/Nakjas/f1-visualization#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mongoose": "^9.3.1"
+  }
+}
