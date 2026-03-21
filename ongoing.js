@@ -1,6 +1,6 @@
 const CONFIG = {
     API_BASE: 'https://api.openf1.org/v1',
-    REFRESH_INTERVAL: 10000,
+    REFRESH_INTERVAL: 30000, 
     LOCAL_STORAGE_KEYS: {
         DRIVERS_DATA: 'f1_drivers_data',
         RACE_HISTORY: 'f1_race_history',
@@ -39,7 +39,7 @@ async function initializeApp() {
 }
 
 async function fetchAndDisplayData() {
-    showStatus('Updating live standings...', 'info');
+    showStatus('Syncing with 2026 Season Data...', 'info');
     try {
         const data = await fetchSeasonData();
         if (data && data.drivers.length > 0) {
@@ -53,9 +53,12 @@ async function fetchAndDisplayData() {
             displayCharts();
             populateDriverSelect();
             displayVotingResults();
-            showStatus('Real-time data synchronized', 'success');
+            showStatus('Live Data Synchronized', 'success');
+        } else {
+            showStatus('No Race Results found for 2026 yet.', 'error');
         }
     } catch (error) {
+        console.error('Fetch Error:', error);
         showStatus('Connection lost. Retrying...', 'error');
         loadDataFromStorage();
     }
@@ -63,6 +66,7 @@ async function fetchAndDisplayData() {
 
 async function fetchSeasonData() {
     const sessionRes = await fetch(`${CONFIG.API_BASE}/sessions?session_type=Race&year=${state.currentSeason}`);
+    if (!sessionRes.ok) throw new Error('Session API unreachable');
     const allSessions = await sessionRes.json();
     
     const now = new Date();
@@ -75,21 +79,23 @@ async function fetchSeasonData() {
     const history = [];
     for (const race of completedRaces) {
         const champRes = await fetch(`${CONFIG.API_BASE}/championship_drivers?session_key=${race.session_key}`);
-        const champData = await champRes.json();
-        
-        if (champData.length > 0) {
-            history.push({
-                raceName: race.meeting_name.replace(' Grand Prix', ''),
-                standings: champData.sort((a, b) => b.points - a.points)
-            });
+        if (champRes.ok) {
+            const champData = await champRes.json();
+            if (champData.length > 0) {
+                history.push({
+                    raceName: race.meeting_name.replace(' Grand Prix', ''),
+                    standings: champData.sort((a, b) => b.points - a.points)
+                });
+            }
         }
+        await new Promise(r => setTimeout(r, 400)); 
     }
 
-    const latestSession = completedRaces[completedRaces.length - 1];
-    const driverRes = await fetch(`${CONFIG.API_BASE}/drivers?session_key=${latestSession.session_key}`);
+    const latestRace = completedRaces[completedRaces.length - 1];
+    const driverRes = await fetch(`${CONFIG.API_BASE}/drivers?session_key=${latestRace.session_key}`);
     const driversMetadata = await driverRes.json();
 
-    const latestChamp = history[history.length - 1].standings;
+    const latestChamp = history.length > 0 ? history[history.length - 1].standings : [];
     
     const processedDrivers = latestChamp.map((d, index) => {
         const meta = driversMetadata.find(m => m.driver_number === d.driver_number) || {};
@@ -99,7 +105,7 @@ async function fetchSeasonData() {
         return {
             driverId: String(d.driver_number),
             name: `${meta.first_name || ''} ${meta.last_name || ''}`.trim() || `Driver ${d.driver_number}`,
-            team: meta.team_name || 'Independent',
+            team: meta.team_name || 'N/A',
             seasonPoints: d.points,
             racePoints: d.points - prevData.points,
             position: index + 1
@@ -126,8 +132,8 @@ function renderBumpChart() {
     const xAxisData = state.raceHistory.map(h => h.raceName);
     const series = state.drivers.slice(0, 10).map(d => {
         const data = state.raceHistory.map(h => {
-            const entry = h.standings.findIndex(s => String(s.driver_number) === d.driverId);
-            return entry !== -1 ? entry + 1 : null;
+            const entryIndex = h.standings.findIndex(s => String(s.driver_number) === d.driverId);
+            return entryIndex !== -1 ? entryIndex + 1 : null;
         });
 
         return {
@@ -137,29 +143,34 @@ function renderBumpChart() {
             symbolSize: 10,
             endLabel: {
                 show: true,
-                formatter: '{a}: ' + d.seasonPoints + ' pts',
+                formatter: '{a}: {c} pts',
                 color: '#e8e8e8',
-                fontSize: 12,
-                offset: [10, 0]
+                fontSize: 11,
+                distance: 10,
+                valueAnimation: true,
+                labelLayout: { moveOverlap: 'shiftY' },
+                formatter: (params) => {
+                    return `${d.name.split(' ').pop()}: ${d.seasonPoints} pts`;
+                }
             },
-            lineStyle: { width: 4 },
+            lineStyle: { width: 3 },
             data: data
         };
     });
 
     state.chartInstances.bump.setOption({
-        tooltip: { trigger: 'item', formatter: '{a} <br/>Position: {c}' },
-        grid: { left: '5%', right: '18%', bottom: '10%', containLabel: true },
+        tooltip: { trigger: 'item', backgroundColor: '#1a2332', textStyle: { color: '#fff' } },
+        grid: { left: '3%', right: '22%', bottom: '5%', containLabel: true },
         xAxis: {
             type: 'category',
             data: xAxisData,
-            axisLabel: { color: '#e8e8e8' }
+            axisLabel: { color: '#e8e8e8', fontSize: 10 }
         },
         yAxis: {
             type: 'value',
             inverse: true,
             min: 1,
-            max: 20,
+            max: 15,
             interval: 1,
             axisLabel: { color: '#e8e8e8' },
             splitLine: { lineStyle: { color: '#2a3f5f' } }
@@ -197,7 +208,7 @@ function renderLatestRaceResults() {
                 datasets: [{
                     data: rest.map(d => d.racePoints),
                     backgroundColor: '#2a3f5f',
-                    borderRadius: 5
+                    borderRadius: 4
                 }]
             },
             options: {
@@ -229,7 +240,8 @@ function renderVotingChart() {
             labels: sorted.map(v => v[0]),
             datasets: [{
                 data: sorted.map(v => v[1]),
-                backgroundColor: '#c41e3a'
+                backgroundColor: '#c41e3a',
+                borderRadius: 4
             }]
         },
         options: {
@@ -285,7 +297,7 @@ function loadVotesFromStorage() {
 }
 function updateLastUpdateTime() {
     const t = new Date().toLocaleString();
-    if (document.getElementById('lastUpdate')) document.getElementById('lastUpdate').textContent = `Live: ${t}`;
+    if (document.getElementById('lastUpdate')) document.getElementById('lastUpdate').textContent = `Live Status: ${t}`;
     localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.LAST_UPDATE, t);
 }
 function showStatus(m, t) {
