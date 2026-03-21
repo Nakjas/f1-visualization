@@ -39,7 +39,7 @@ async function initializeApp() {
 }
 
 async function fetchAndDisplayData() {
-    showStatus('Syncing Live Standings...', 'info');
+    showStatus('Syncing Live 2026 Standings...', 'info');
     try {
         const data = await fetchSeasonData();
         if (data && data.drivers.length > 0) {
@@ -55,11 +55,11 @@ async function fetchAndDisplayData() {
             displayVotingResults();
             showStatus('Live Data Synchronized', 'success');
         } else {
-            showStatus('Waiting for 2026 Race Results...', 'info');
+            showStatus('No completed 2026 races found.', 'info');
         }
     } catch (error) {
         console.error('Fetch Error:', error);
-        showStatus('Connection lost. Retrying...', 'error');
+        showStatus('Connection error. Retrying...', 'error');
         loadDataFromStorage();
         displayCharts();
     }
@@ -67,11 +67,9 @@ async function fetchAndDisplayData() {
 
 async function fetchSeasonData() {
     const sessionRes = await fetch(`${CONFIG.API_BASE}/sessions?session_type=Race&year=${state.currentSeason}`);
-    if (!sessionRes.ok) throw new Error('API Unreachable');
+    if (!sessionRes.ok) throw new Error('API Error');
     const allSessions = await sessionRes.json();
     
-    if (!Array.isArray(allSessions)) return null;
-
     const now = new Date();
     const completedRaces = allSessions
         .filter(s => s && s.date_start && new Date(s.date_start) < now)
@@ -85,9 +83,9 @@ async function fetchSeasonData() {
         if (champRes.ok) {
             const champData = await champRes.json();
             if (Array.isArray(champData) && champData.length > 0) {
-                // Fix: Check if meeting_name exists before using .replace()
-                const rawName = race.meeting_name || "Unknown Grand Prix";
-                const cleanName = typeof rawName === 'string' ? rawName.replace(' Grand Prix', '') : "GP";
+                // Fix: Backup names if meeting_name is missing
+                const rawName = race.meeting_name || race.location || race.circuit_short_name || "Unknown GP";
+                const cleanName = rawName.replace(' Grand Prix', '');
                 
                 history.push({
                     raceName: cleanName,
@@ -109,14 +107,18 @@ async function fetchSeasonData() {
     const processedDrivers = latestChamp.map((d, index) => {
         const meta = driversMetadata.find(m => m.driver_number === d.driver_number) || {};
         const prevChamp = history.length > 1 ? history[history.length - 2].standings : [];
-        const prevData = prevChamp.find(p => p.driver_number === d.driver_number) || { points: 0 };
+        const prevData = prevChamp.find(p => p.driver_number === d.driver_number) || { points: 0, points_current: 0, points_start: 0 };
         
+        // Fix: Triple-check for points field names to avoid "undefined"
+        const currentPts = d.points ?? d.points_current ?? d.points_start ?? 0;
+        const pastPts = prevData.points ?? prevData.points_current ?? prevData.points_start ?? 0;
+
         return {
             driverId: String(d.driver_number),
             name: `${meta.first_name || ''} ${meta.last_name || ''}`.trim() || `Driver ${d.driver_number}`,
             team: meta.team_name || 'N/A',
-            seasonPoints: d.points,
-            racePoints: d.points - prevData.points,
+            seasonPoints: currentPts,
+            racePoints: Math.max(0, currentPts - pastPts),
             position: index + 1
         };
     });
@@ -149,19 +151,20 @@ function renderBumpChart() {
             name: d.name,
             type: 'line',
             smooth: true,
-            symbolSize: 10,
-            // Show points on the right side of the chart
+            symbolSize: 8,
             endLabel: {
                 show: true,
                 color: '#e8e8e8',
-                fontSize: 11,
-                distance: 10,
+                fontSize: 12,
+                distance: 15,
                 formatter: (params) => {
                     const lastName = d.name.split(' ').pop();
-                    return `${lastName}: ${d.seasonPoints} pts`;
+                    // Fix: Ensure we use the safe seasonPoints variable
+                    return `${lastName}: ${d.seasonPoints || 0} pts`;
                 }
             },
             labelLayout: { moveOverlap: 'shiftY' },
+            emphasis: { focus: 'series' },
             data: data
         };
     });
