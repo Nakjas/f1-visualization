@@ -1,6 +1,6 @@
 const CONFIG = {
     API_BASE: 'https://api.openf1.org/v1',
-    REFRESH_INTERVAL: 30000, 
+    REFRESH_INTERVAL: 60000, // Refresh every minute to avoid rate limits
     LOCAL_STORAGE_KEYS: {
         DRIVERS_DATA: 'f1_drivers_data',
         RACE_HISTORY: 'f1_race_history',
@@ -39,7 +39,7 @@ async function initializeApp() {
 }
 
 async function fetchAndDisplayData() {
-    showStatus('Syncing with 2026 Season Data...', 'info');
+    showStatus('Updating 2026 Season Standings...', 'info');
     try {
         const data = await fetchSeasonData();
         if (data && data.drivers.length > 0) {
@@ -55,23 +55,24 @@ async function fetchAndDisplayData() {
             displayVotingResults();
             showStatus('Live Data Synchronized', 'success');
         } else {
-            showStatus('No Race Results found for 2026 yet.', 'error');
+            showStatus('No completed races found for 2026 yet.', 'info');
         }
     } catch (error) {
         console.error('Fetch Error:', error);
-        showStatus('Connection lost. Retrying...', 'error');
+        showStatus('Connection error. Using cached data.', 'error');
         loadDataFromStorage();
+        displayCharts();
     }
 }
 
 async function fetchSeasonData() {
     const sessionRes = await fetch(`${CONFIG.API_BASE}/sessions?session_type=Race&year=${state.currentSeason}`);
-    if (!sessionRes.ok) throw new Error('Session API unreachable');
+    if (!sessionRes.ok) throw new Error('Could not reach OpenF1');
     const allSessions = await sessionRes.json();
     
     const now = new Date();
     const completedRaces = allSessions
-        .filter(s => new Date(s.date_start) < now)
+        .filter(s => s.date_start && new Date(s.date_start) < now)
         .sort((a, b) => new Date(a.date_start) - new Date(b.date_start));
 
     if (completedRaces.length === 0) return null;
@@ -81,21 +82,26 @@ async function fetchSeasonData() {
         const champRes = await fetch(`${CONFIG.API_BASE}/championship_drivers?session_key=${race.session_key}`);
         if (champRes.ok) {
             const champData = await champRes.json();
-            if (champData.length > 0) {
+            if (champData && champData.length > 0) {
+                // Defensive check: handle cases where meeting_name is missing
+                const rawName = race.meeting_name || "Unknown GP";
                 history.push({
-                    raceName: race.meeting_name.replace(' Grand Prix', ''),
+                    raceName: rawName.replace(' Grand Prix', ''),
                     standings: champData.sort((a, b) => b.points - a.points)
                 });
             }
         }
-        await new Promise(r => setTimeout(r, 400)); 
+        // Wait 500ms between calls to avoid being blocked by OpenF1
+        await new Promise(r => setTimeout(r, 500)); 
     }
+
+    if (history.length === 0) return null;
 
     const latestRace = completedRaces[completedRaces.length - 1];
     const driverRes = await fetch(`${CONFIG.API_BASE}/drivers?session_key=${latestRace.session_key}`);
     const driversMetadata = await driverRes.json();
 
-    const latestChamp = history.length > 0 ? history[history.length - 1].standings : [];
+    const latestChamp = history[history.length - 1].standings;
     
     const processedDrivers = latestChamp.map((d, index) => {
         const meta = driversMetadata.find(m => m.driver_number === d.driver_number) || {};
@@ -140,37 +146,36 @@ function renderBumpChart() {
             name: d.name,
             type: 'line',
             smooth: true,
-            symbolSize: 10,
+            symbolSize: 8,
             endLabel: {
                 show: true,
-                formatter: '{a}: {c} pts',
                 color: '#e8e8e8',
-                fontSize: 11,
-                distance: 10,
-                valueAnimation: true,
-                labelLayout: { moveOverlap: 'shiftY' },
+                fontSize: 12,
+                distance: 15,
                 formatter: (params) => {
+                    // Show driver name and current season points on the right
                     return `${d.name.split(' ').pop()}: ${d.seasonPoints} pts`;
                 }
             },
-            lineStyle: { width: 3 },
+            labelLayout: { moveOverlap: 'shiftY' },
+            emphasis: { focus: 'series' },
             data: data
         };
     });
 
     state.chartInstances.bump.setOption({
         tooltip: { trigger: 'item', backgroundColor: '#1a2332', textStyle: { color: '#fff' } },
-        grid: { left: '3%', right: '22%', bottom: '5%', containLabel: true },
+        grid: { left: '3%', right: '25%', bottom: '8%', containLabel: true },
         xAxis: {
             type: 'category',
             data: xAxisData,
-            axisLabel: { color: '#e8e8e8', fontSize: 10 }
+            axisLabel: { color: '#e8e8e8' }
         },
         yAxis: {
             type: 'value',
             inverse: true,
             min: 1,
-            max: 15,
+            max: 20,
             interval: 1,
             axisLabel: { color: '#e8e8e8' },
             splitLine: { lineStyle: { color: '#2a3f5f' } }
