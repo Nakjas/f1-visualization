@@ -136,6 +136,8 @@ async function fetchSeasonData() {
             driverId: String(d.driver_number),
             name: `${meta.first_name || ''} ${meta.last_name || ''}`.trim() || `Driver ${d.driver_number}`,
             team: meta.team_name || 'N/A',
+            // Capture the headshot URL, defaulting to placeholder if it doesn't exist
+            headshot_url: meta.headshot_url || 'placeholder_car.png', 
             seasonPoints: currentPts,
             racePoints: Math.max(0, currentPts - pastPts),
             position: index + 1
@@ -230,7 +232,7 @@ function renderLatestRaceResults() {
         cont.innerHTML = podiumOrder.map(item => `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
-                    <img src="placeholder_car.png" class="top5-car-img" />
+                    <img src="${item.driver.headshot_url}" class="top5-car-img" alt="${item.driver.name}" onerror="this.src='placeholder_car.png'" />
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
                     <span class="top5-points">${item.driver.racePoints} pts</span>
                 </div>
