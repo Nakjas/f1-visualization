@@ -89,40 +89,39 @@ html, body {
     transform: scale(0.98);
 }
 
-.status-message {
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: 500;
-    min-height: 20px;
-}
-
-.status-message.success {
-    background-color: #1a4d2e;
-    color: #4ade80;
-    border: 1px solid #4ade80;
-}
-
-.status-message.error {
-    background-color: #4d1a1a;
-    color: #ff6b6b;
-    border: 1px solid #ff6b6b;
-}
-
-.status-message.info {
-    background-color: #1a2d4d;
-    color: #60a5fa;
-    border: 1px solid #60a5fa;
+.dashboard-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 .main-content {
-    flex: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
     margin-bottom: 30px;
     width: 100%;
+}
+
+.bump-section {
+    background-color: var(--secondary-dark);
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-left: 4px solid var(--accent-red);
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bump-section h2 {
+    color: var(--accent-yellow);
+    border-bottom: 2px solid var(--accent-red);
+    margin-bottom: 10px;
+    font-size: 1.5em;
+    padding-bottom: 10px;
 }
 
 .charts-section, .voting-section {
@@ -364,6 +363,32 @@ canvas {
     color: var(--accent-yellow);
     font-weight: bold;
     font-size: 1.1em;
+}
+
+.status-message {
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 500;
+    min-height: 20px;
+}
+
+.status-message.success {
+    background-color: #1a4d2e;
+    color: #4ade80;
+    border: 1px solid #4ade80;
+}
+
+.status-message.error {
+    background-color: #4d1a1a;
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+}
+
+.status-message.info {
+    background-color: #1a2d4d;
+    color: #60a5fa;
+    border: 1px solid #60a5fa;
 }
 
 .footer {
