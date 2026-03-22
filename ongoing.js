@@ -192,19 +192,32 @@ function renderBumpChart() {
 
 function renderLatestRaceResults() {
     const sorted = [...state.drivers].sort((a, b) => b.racePoints - a.racePoints);
-    const top5 = sorted.slice(0, 5);
+    const p1 = sorted[0];
+    const p2 = sorted[1];
+    const p3 = sorted[2];
+    const p4 = sorted[3];
+    const p5 = sorted[4];
+
+    const podiumOrder = [
+        { driver: p4, pos: 4 },
+        { driver: p2, pos: 2 },
+        { driver: p1, pos: 1 },
+        { driver: p3, pos: 3 },
+        { driver: p5, pos: 5 }
+    ].filter(item => item.driver);
+
     const rest = sorted.slice(5);
 
     const cont = document.getElementById('top5Container');
     if (cont) {
-        cont.innerHTML = top5.map((d, i) => `
+        cont.innerHTML = podiumOrder.map(item => `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
                     <img src="placeholder_car.png" class="top5-car-img" />
-                    <span class="top5-driver-name">${d.name.split(' ').pop()}</span>
-                    <span class="top5-points">${d.racePoints} pts</span>
+                    <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
+                    <span class="top5-points">${item.driver.racePoints} pts</span>
                 </div>
-                <div class="top5-bar pos-${i + 1}" style="height: ${Math.max((d.racePoints / 25) * 100, 15)}%"></div>
+                <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / 25) * 100, 15)}%"></div>
             </div>`).join('');
     }
 

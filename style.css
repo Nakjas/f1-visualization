@@ -23,9 +23,9 @@ html, body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 20px 5%;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
