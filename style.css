@@ -96,14 +96,6 @@ html, body {
     width: 100%;
 }
 
-.main-content {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    margin-bottom: 30px;
-    width: 100%;
-}
-
 .bump-section {
     background-color: var(--secondary-dark);
     padding: 25px;
@@ -122,6 +114,14 @@ html, body {
     margin-bottom: 10px;
     font-size: 1.5em;
     padding-bottom: 10px;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+    width: 100%;
 }
 
 .charts-section, .voting-section {
@@ -230,8 +230,8 @@ canvas {
 .pos-3 { background: linear-gradient(to top, #cd7f32, #e8a365); }
 
 .voting-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 20px;
 }
 
@@ -250,6 +250,12 @@ canvas {
     text-align: center;
     font-size: 1.2em;
     margin-bottom: 10px;
+}
+
+.vote-selection-area {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .driver-select {
@@ -309,10 +315,12 @@ canvas {
     background-color: #5a2a32;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .vote-chart-wrapper {
-    margin-top: 15px;
-    border-top: 1px solid var(--border-color);
-    padding-top: 15px;
+    margin-top: 5px;
 }
 
 .stats-box {
@@ -411,4 +419,10 @@ canvas {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
 }

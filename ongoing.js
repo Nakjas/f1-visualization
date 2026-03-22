@@ -12,6 +12,19 @@ const CONFIG = {
     VOTE_COOLDOWN_MS: 24 * 60 * 60 * 1000
 };
 
+const TEAM_COLORS = {
+    'Red Bull Racing': '#3671C6',
+    'Ferrari': '#E8002D',
+    'Mercedes': '#27F4D2',
+    'McLaren': '#FF8000',
+    'Aston Martin': '#229971',
+    'Alpine': '#FF87BC',
+    'Williams': '#64C4FF',
+    'Racing Bulls': '#6692FF',
+    'Sauber': '#52E252',
+    'Haas F1 Team': '#B6BABD'
+};
+
 const state = {
     drivers: [],
     raceHistory: [],
@@ -36,13 +49,13 @@ async function initializeApp() {
     loadVotesFromStorage();
     await fetchAndDisplayData();
     setupEventListeners();
-    updateCooldownTimers();
+    updateVotingVisibility();
     
     setInterval(async () => {
         await fetchAndDisplayData();
     }, CONFIG.REFRESH_INTERVAL);
 
-    setInterval(updateCooldownTimers, 60000);
+    setInterval(updateVotingVisibility, 60000);
 }
 
 async function fetchAndDisplayData() {
@@ -235,7 +248,7 @@ function renderLatestRaceResults() {
                 labels: rest.map(d => d.name),
                 datasets: [{
                     data: rest.map(d => d.racePoints),
-                    backgroundColor: '#2a3f5f',
+                    backgroundColor: rest.map(d => TEAM_COLORS[d.team] || '#2a3f5f'),
                     borderRadius: 4
                 }]
             },
@@ -253,6 +266,14 @@ function renderLatestRaceResults() {
 
 function renderAllVotingCharts() {
     CONFIG.CATEGORIES.forEach(cat => renderVotingChart(cat));
+}
+
+function getDriverTeamColor(driverName) {
+    const driver = state.drivers.find(d => d.name === driverName);
+    if (driver && driver.team && TEAM_COLORS[driver.team]) {
+        return TEAM_COLORS[driver.team];
+    }
+    return '#c41e3a';
 }
 
 function renderVotingChart(category) {
@@ -287,7 +308,7 @@ function renderVotingChart(category) {
             labels: sorted.map(v => v[0]),
             datasets: [{
                 data: sorted.map(v => v[1]),
-                backgroundColor: '#c41e3a',
+                backgroundColor: sorted.map(v => getDriverTeamColor(v[0])),
                 borderRadius: 4
             }]
         },
@@ -343,7 +364,7 @@ function handleVote(category) {
         
         saveVotesToStorage();
         renderVotingChart(category);
-        updateCooldownTimers();
+        updateVotingVisibility();
         
         selectEl.value = '';
         showStatus(`Vote registered for ${d.name}`, 'success');
@@ -361,16 +382,20 @@ function setupEventListeners() {
     });
 }
 
-function updateCooldownTimers() {
+function updateVotingVisibility() {
     const now = Date.now();
     
     CONFIG.CATEGORIES.forEach(cat => {
-        const btn = document.getElementById(`btn_${cat}`);
+        const selectionArea = document.getElementById(`selection_${cat}`);
+        const resultsArea = document.getElementById(`results_${cat}`);
         const timerEl = document.getElementById(`time_${cat}`);
+        
         const lastVote = state.userVotes[cat];
         
         if (lastVote && (now - lastVote.timestamp) < CONFIG.VOTE_COOLDOWN_MS) {
-            if (btn) btn.disabled = true;
+            if (selectionArea) selectionArea.classList.add('hidden');
+            if (resultsArea) resultsArea.classList.remove('hidden');
+            
             if (timerEl) {
                 const remainingMs = CONFIG.VOTE_COOLDOWN_MS - (now - lastVote.timestamp);
                 const hrs = Math.floor(remainingMs / (1000 * 60 * 60));
@@ -378,7 +403,8 @@ function updateCooldownTimers() {
                 timerEl.textContent = `Next vote available in: ${hrs}h ${mins}m`;
             }
         } else {
-            if (btn) btn.disabled = false;
+            if (selectionArea) selectionArea.classList.remove('hidden');
+            if (resultsArea) resultsArea.classList.add('hidden');
             if (timerEl) timerEl.textContent = '';
         }
     });
