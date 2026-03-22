@@ -97,8 +97,8 @@ html, body {
 }
 
 .main-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 30px;
     margin-bottom: 30px;
     width: 100%;
@@ -170,13 +170,6 @@ html, body {
     animation: fadeIn 0.3s ease-in-out;
 }
 
-.chart-container h3 {
-    color: var(--accent-yellow);
-    font-size: 1.05em;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
 canvas {
     max-width: 100% !important;
 }
@@ -232,32 +225,31 @@ canvas {
     transition: height 0.5s ease-out;
 }
 
-.pos-1 {
-    background: linear-gradient(to top, #ffd700, #ffea70);
+.pos-1 { background: linear-gradient(to top, #ffd700, #ffea70); }
+.pos-2 { background: linear-gradient(to top, #c0c0c0, #e0e0e0); }
+.pos-3 { background: linear-gradient(to top, #cd7f32, #e8a365); }
+
+.voting-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
 }
 
-.pos-2 {
-    background: linear-gradient(to top, #c0c0c0, #e0e0e0);
-}
-
-.pos-3 {
-    background: linear-gradient(to top, #cd7f32, #e8a365);
-}
-
-.driver-selection {
+.voting-card {
     background-color: var(--primary-dark);
     padding: 20px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 15px;
 }
 
-.driver-selection label {
-    color: var(--accent-light);
-    font-weight: 500;
-    font-size: 0.95em;
+.voting-card h3 {
+    color: var(--accent-red);
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 10px;
 }
 
 .driver-select {
@@ -269,6 +261,7 @@ canvas {
     font-size: 0.95em;
     cursor: pointer;
     transition: all 0.2s ease;
+    width: 100%;
 }
 
 .driver-select:hover {
@@ -297,6 +290,7 @@ canvas {
     font-size: 0.95em;
     font-weight: 600;
     transition: all 0.2s ease;
+    width: 100%;
 }
 
 .vote-submit-btn:hover:not(:disabled) {
@@ -310,59 +304,45 @@ canvas {
 }
 
 .vote-submit-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    background-color: #5a2a32;
 }
 
-.voting-results {
-    background-color: var(--primary-dark);
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    flex: 1;
-}
-
-.voting-results h3 {
-    color: var(--accent-red);
-    margin-bottom: 15px;
-    font-size: 1.1em;
-}
-
-.voting-stats {
-    background-color: var(--primary-dark);
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.voting-stats h3 {
-    color: var(--accent-red);
-    margin-bottom: 15px;
-    font-size: 1.1em;
+.vote-chart-wrapper {
+    margin-top: 15px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
 }
 
 .stats-box {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    background-color: var(--secondary-dark);
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 10px;
 }
 
 .stats-box p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.stats-box p:last-child {
-    border-bottom: none;
+    font-size: 0.9em;
 }
 
 .stats-box span {
     color: var(--accent-yellow);
     font-weight: bold;
-    font-size: 1.1em;
+}
+
+.cooldown-timer {
+    color: var(--accent-light) !important;
+    font-size: 0.8em !important;
+    text-align: center;
+    justify-content: center !important;
+    margin-top: 5px;
 }
 
 .status-message {
@@ -371,6 +351,7 @@ canvas {
     text-align: center;
     font-weight: 500;
     min-height: 20px;
+    margin-top: 20px;
 }
 
 .status-message.success {
@@ -428,18 +409,6 @@ canvas {
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 1024px) {
-    .main-content {
-        grid-template-columns: 1fr;
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

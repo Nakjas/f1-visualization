@@ -39,29 +39,57 @@
                 </section>
 
                 <section class="voting-section">
-                    <h2>Vote for Your Favorite Driver</h2>
-                    
-                    <div class="driver-selection">
-                        <label for="driverSelect">Select a Driver:</label>
-                        <select id="driverSelect" class="driver-select">
-                            <option value="">-- Choose a driver --</option>
-                        </select>
-                        <button id="voteSubmitBtn" class="vote-submit-btn">Submit Vote</button>
-                    </div>
-
-                    <div class="voting-results">
-                        <h3>Voting Results</h3>
-                        <div class="vote-chart-wrapper">
-                            <canvas id="voteChart"></canvas>
+                    <h2>Community Awards (1 Vote Per Day)</h2>
+                    <div class="voting-grid">
+                        
+                        <div class="voting-card">
+                            <h3>Driver of the Day</h3>
+                            <select id="select_dotd" class="driver-select">
+                                <option value="">-- Choose a driver --</option>
+                            </select>
+                            <button id="btn_dotd" class="vote-submit-btn" data-category="dotd">Submit Vote</button>
+                            <div class="vote-chart-wrapper">
+                                <canvas id="chart_dotd"></canvas>
+                            </div>
+                            <div class="stats-box">
+                                <p>Total Votes: <span id="total_dotd">0</span></p>
+                                <p>Your Vote: <span id="user_dotd">Not voted</span></p>
+                                <p id="time_dotd" class="cooldown-timer"></p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="voting-stats">
-                        <h3>Statistics</h3>
-                        <div id="votingStats" class="stats-box">
-                            <p>Total Votes: <span id="totalVotes">0</span></p>
-                            <p>Your Vote: <span id="yourVote">Not voted</span></p>
+                        <div class="voting-card">
+                            <h3>Best Overtake</h3>
+                            <select id="select_overtake" class="driver-select">
+                                <option value="">-- Choose a driver --</option>
+                            </select>
+                            <button id="btn_overtake" class="vote-submit-btn" data-category="overtake">Submit Vote</button>
+                            <div class="vote-chart-wrapper">
+                                <canvas id="chart_overtake"></canvas>
+                            </div>
+                            <div class="stats-box">
+                                <p>Total Votes: <span id="total_overtake">0</span></p>
+                                <p>Your Vote: <span id="user_overtake">Not voted</span></p>
+                                <p id="time_overtake" class="cooldown-timer"></p>
+                            </div>
                         </div>
+
+                        <div class="voting-card">
+                            <h3>Most Surprising Result</h3>
+                            <select id="select_surprise" class="driver-select">
+                                <option value="">-- Choose a driver --</option>
+                            </select>
+                            <button id="btn_surprise" class="vote-submit-btn" data-category="surprise">Submit Vote</button>
+                            <div class="vote-chart-wrapper">
+                                <canvas id="chart_surprise"></canvas>
+                            </div>
+                            <div class="stats-box">
+                                <p>Total Votes: <span id="total_surprise">0</span></p>
+                                <p>Your Vote: <span id="user_surprise">Not voted</span></p>
+                                <p id="time_surprise" class="cooldown-timer"></p>
+                            </div>
+                        </div>
+
                     </div>
                 </section>
             </div>

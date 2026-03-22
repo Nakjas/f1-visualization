@@ -5,22 +5,26 @@ const CONFIG = {
         DRIVERS_DATA: 'f1_drivers_data',
         RACE_HISTORY: 'f1_race_history',
         LAST_UPDATE: 'f1_last_update',
-        USER_VOTE: 'f1_user_vote',
-        VOTES: 'f1_votes'
-    }
+        VOTES: 'f1_category_votes',
+        USER_VOTES: 'f1_user_category_votes'
+    },
+    CATEGORIES: ['dotd', 'overtake', 'surprise'],
+    VOTE_COOLDOWN_MS: 24 * 60 * 60 * 1000
 };
 
 const state = {
     drivers: [],
     raceHistory: [],
-    votes: {},
-    userVote: null,
+    votes: { dotd: {}, overtake: {}, surprise: {} },
+    userVotes: { dotd: null, overtake: null, surprise: null },
     lastUpdate: null,
     currentSeason: 2026,
     chartInstances: {
         bump: null,
         restOfGrid: null,
-        vote: null
+        chart_dotd: null,
+        chart_overtake: null,
+        chart_surprise: null
     }
 };
 
@@ -32,10 +36,13 @@ async function initializeApp() {
     loadVotesFromStorage();
     await fetchAndDisplayData();
     setupEventListeners();
+    updateCooldownTimers();
     
     setInterval(async () => {
         await fetchAndDisplayData();
     }, CONFIG.REFRESH_INTERVAL);
+
+    setInterval(updateCooldownTimers, 60000);
 }
 
 async function fetchAndDisplayData() {
@@ -51,17 +58,18 @@ async function fetchAndDisplayData() {
             updateLastUpdateTime();
             
             displayCharts();
-            populateDriverSelect();
-            displayVotingResults();
+            populateDriverSelects();
+            renderAllVotingCharts();
             showStatus('Live Data Synchronized', 'success');
         } else {
             showStatus('No completed 2026 races found.', 'info');
         }
     } catch (error) {
-        console.error('Fetch Error:', error);
         showStatus('Connection error. Retrying...', 'error');
         loadDataFromStorage();
         displayCharts();
+        populateDriverSelects();
+        renderAllVotingCharts();
     }
 }
 
@@ -83,7 +91,6 @@ async function fetchSeasonData() {
         if (champRes.ok) {
             const champData = await champRes.json();
             if (Array.isArray(champData) && champData.length > 0) {
-                // Fix: Backup names if meeting_name is missing
                 const rawName = race.meeting_name || race.location || race.circuit_short_name || "Unknown GP";
                 const cleanName = rawName.replace(' Grand Prix', '');
                 
@@ -109,7 +116,6 @@ async function fetchSeasonData() {
         const prevChamp = history.length > 1 ? history[history.length - 2].standings : [];
         const prevData = prevChamp.find(p => p.driver_number === d.driver_number) || { points: 0, points_current: 0, points_start: 0 };
         
-        // Fix: Triple-check for points field names to avoid "undefined"
         const currentPts = d.points ?? d.points_current ?? d.points_start ?? 0;
         const pastPts = prevData.points ?? prevData.points_current ?? prevData.points_start ?? 0;
 
@@ -129,7 +135,6 @@ async function fetchSeasonData() {
 function displayCharts() {
     renderBumpChart();
     renderLatestRaceResults();
-    renderVotingChart();
 }
 
 function renderBumpChart() {
@@ -157,9 +162,8 @@ function renderBumpChart() {
                 color: '#e8e8e8',
                 fontSize: 12,
                 distance: 15,
-                formatter: (params) => {
+                formatter: () => {
                     const lastName = d.name.split(' ').pop();
-                    // Fix: Ensure we use the safe seasonPoints variable
                     return `${lastName}: ${d.seasonPoints || 0} pts`;
                 }
             },
@@ -247,18 +251,37 @@ function renderLatestRaceResults() {
     }
 }
 
-function renderVotingChart() {
-    const canvas = document.getElementById('voteChart');
+function renderAllVotingCharts() {
+    CONFIG.CATEGORIES.forEach(cat => renderVotingChart(cat));
+}
+
+function renderVotingChart(category) {
+    const canvasId = `chart_${category}`;
+    const canvas = document.getElementById(canvasId);
     if (!canvas) return;
+    
     const ctx = canvas.getContext('2d');
-    if (state.chartInstances.vote) state.chartInstances.vote.destroy();
+    const chartKey = `chart_${category}`;
     
-    const sorted = Object.entries(state.votes).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const total = Object.values(state.votes).reduce((a, b) => a + b, 0);
+    if (state.chartInstances[chartKey]) {
+        state.chartInstances[chartKey].destroy();
+    }
     
-    document.getElementById('totalVotes').textContent = total;
+    const catVotes = state.votes[category] || {};
+    const sorted = Object.entries(catVotes).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const total = Object.values(catVotes).reduce((a, b) => a + b, 0);
     
-    state.chartInstances.vote = new Chart(ctx, {
+    const totalSpan = document.getElementById(`total_${category}`);
+    if (totalSpan) totalSpan.textContent = total;
+
+    const userSpan = document.getElementById(`user_${category}`);
+    if (userSpan) {
+        const userVoted = state.userVotes[category];
+        userSpan.textContent = userVoted ? userVoted.driverName : 'Not voted';
+        userSpan.style.color = userVoted ? 'var(--accent-yellow)' : '#888';
+    }
+    
+    state.chartInstances[chartKey] = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: sorted.map(v => v[0]),
@@ -273,35 +296,90 @@ function renderVotingChart() {
             plugins: { legend: { display: false } },
             scales: {
                 x: { display: false },
-                y: { ticks: { color: '#e8e8e8' } }
+                y: { ticks: { color: '#e8e8e8', font: { size: 10 } } }
             }
         }
     });
 }
 
-function populateDriverSelect() {
-    const s = document.getElementById('driverSelect');
-    if (!s || s.options.length > 1) return;
-    state.drivers.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.driverId;
-        opt.textContent = `${d.name} (${d.team})`;
-        s.appendChild(opt);
+function populateDriverSelects() {
+    CONFIG.CATEGORIES.forEach(cat => {
+        const s = document.getElementById(`select_${cat}`);
+        if (!s || s.options.length > 1) return;
+        state.drivers.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.driverId;
+            opt.textContent = `${d.name}`;
+            s.appendChild(opt);
+        });
     });
+}
+
+function handleVote(category) {
+    const selectEl = document.getElementById(`select_${category}`);
+    const id = selectEl.value;
+    
+    if (!id) {
+        showStatus('Please select a driver first.', 'error');
+        return;
+    }
+
+    const lastVote = state.userVotes[category];
+    if (lastVote && (Date.now() - lastVote.timestamp) < CONFIG.VOTE_COOLDOWN_MS) {
+        showStatus('You have already voted in this category today.', 'error');
+        return;
+    }
+
+    const d = state.drivers.find(drv => drv.driverId === id);
+    if (d) {
+        if (!state.votes[category]) state.votes[category] = {};
+        state.votes[category][d.name] = (state.votes[category][d.name] || 0) + 1;
+        
+        state.userVotes[category] = {
+            driverId: id,
+            driverName: d.name,
+            timestamp: Date.now()
+        };
+        
+        saveVotesToStorage();
+        renderVotingChart(category);
+        updateCooldownTimers();
+        
+        selectEl.value = '';
+        showStatus(`Vote registered for ${d.name}`, 'success');
+    }
 }
 
 function setupEventListeners() {
     document.getElementById('refreshBtn')?.addEventListener('click', () => fetchAndDisplayData());
-    document.getElementById('voteSubmitBtn')?.addEventListener('click', () => {
-        const id = document.getElementById('driverSelect').value;
-        const d = state.drivers.find(drv => drv.driverId === id);
-        if (d) {
-            state.votes[d.name] = (state.votes[d.name] || 0) + 1;
-            state.userVote = { driverName: d.name };
-            saveVotesToStorage();
-            renderVotingChart();
-            document.getElementById('yourVote').textContent = d.name;
-            showStatus(`Vote registered for ${d.name}`, 'success');
+    
+    CONFIG.CATEGORIES.forEach(cat => {
+        const btn = document.getElementById(`btn_${cat}`);
+        if (btn) {
+            btn.addEventListener('click', () => handleVote(cat));
+        }
+    });
+}
+
+function updateCooldownTimers() {
+    const now = Date.now();
+    
+    CONFIG.CATEGORIES.forEach(cat => {
+        const btn = document.getElementById(`btn_${cat}`);
+        const timerEl = document.getElementById(`time_${cat}`);
+        const lastVote = state.userVotes[cat];
+        
+        if (lastVote && (now - lastVote.timestamp) < CONFIG.VOTE_COOLDOWN_MS) {
+            if (btn) btn.disabled = true;
+            if (timerEl) {
+                const remainingMs = CONFIG.VOTE_COOLDOWN_MS - (now - lastVote.timestamp);
+                const hrs = Math.floor(remainingMs / (1000 * 60 * 60));
+                const mins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                timerEl.textContent = `Next vote available in: ${hrs}h ${mins}m`;
+            }
+        } else {
+            if (btn) btn.disabled = false;
+            if (timerEl) timerEl.textContent = '';
         }
     });
 }
@@ -314,16 +392,38 @@ function loadDataFromStorage() {
     if (h) state.raceHistory = JSON.parse(h);
 }
 function saveRaceHistoryToStorage(h) { localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.RACE_HISTORY, JSON.stringify(h)); }
-function saveVotesToStorage() { localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.VOTES, JSON.stringify(state.votes)); }
+
+function saveVotesToStorage() { 
+    localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.VOTES, JSON.stringify(state.votes)); 
+    localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.USER_VOTES, JSON.stringify(state.userVotes)); 
+}
+
 function loadVotesFromStorage() {
     const v = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.VOTES);
-    if (v) state.votes = JSON.parse(v);
+    if (v) {
+        const parsed = JSON.parse(v);
+        if (parsed.dotd) {
+            state.votes = parsed;
+        } else {
+            state.votes = { dotd: parsed, overtake: {}, surprise: {} };
+        }
+    }
+    
+    const uv = localStorage.getItem(CONFIG.LOCAL_STORAGE_KEYS.USER_VOTES);
+    if (uv) {
+        const parsed = JSON.parse(uv);
+        if (parsed.dotd !== undefined) {
+            state.userVotes = parsed;
+        }
+    }
 }
+
 function updateLastUpdateTime() {
     const t = new Date().toLocaleString();
     if (document.getElementById('lastUpdate')) document.getElementById('lastUpdate').textContent = `Live Status: ${t}`;
     localStorage.setItem(CONFIG.LOCAL_STORAGE_KEYS.LAST_UPDATE, t);
 }
+
 function showStatus(m, t) {
     const el = document.getElementById('statusMessage');
     if (el) { el.textContent = m; el.className = `status-message ${t}`; }
