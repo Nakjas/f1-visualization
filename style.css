@@ -156,7 +156,7 @@ html, body {
 }
 
 .voting-section h2 {
-    color: var(--accent-yellow);
+    color: var(--accent-red);
     border-bottom: 2px solid var(--accent-yellow);
 }
 
@@ -246,7 +246,7 @@ canvas {
 }
 
 .voting-card h3 {
-    color: var(--accent-red);
+    color: var(--accent-yellow);
     text-align: center;
     font-size: 1.2em;
     margin-bottom: 10px;
