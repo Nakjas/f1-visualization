@@ -171,6 +171,9 @@ function renderBumpChart() {
             type: 'line',
             smooth: true,
             symbolSize: 8,
+            itemStyle: {
+                color: TEAM_COLORS[d.team] || '#e8e8e8'
+            },
             endLabel: {
                 show: true,
                 color: '#e8e8e8',
