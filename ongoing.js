@@ -282,6 +282,8 @@ function renderLatestRaceResults() {
     if (cont) {
         cont.innerHTML = podiumOrder.map(item => {
             const displayGap = item.driver.isDNF ? 'DNF' : (item.driver.gapToLeader !== 'N/A' ? item.driver.gapToLeader : `${item.driver.racePoints} pts`);
+            const teamColor = TEAM_COLORS[item.driver.team] || 'var(--accent-blue)';
+            
             return `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
