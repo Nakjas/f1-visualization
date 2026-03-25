@@ -232,7 +232,7 @@ function renderBumpChart() {
             type: 'value',
             inverse: true,
             min: 1,
-            max: 10,
+            max: 20,
             interval: 1,
             axisLabel: { color: '#e8e8e8' },
             splitLine: { lineStyle: { color: '#2a3f5f' } }
@@ -262,7 +262,6 @@ function renderLatestRaceResults() {
     ].filter(item => item.driver);
 
     const rest = sorted.slice(5);
-
     const maxPts = p1 && p1.racePoints > 0 ? p1.racePoints : 25;
 
     const cont = document.getElementById('top5Container');
@@ -290,13 +289,14 @@ function renderLatestRaceResults() {
     if (canvas) {
         const ctx = canvas.getContext('2d');
         if (state.chartInstances.restOfGrid) state.chartInstances.restOfGrid.destroy();
+        
+        const maxRestVal = Math.max(...rest.map(d => d.racePoints), 0);
+        const xMax = maxRestVal > 0 ? maxRestVal + 1 : 1;
+
         state.chartInstances.restOfGrid = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: rest.map(d => {
-                    const displayGap = d.gapToLeader !== 'N/A' ? d.gapToLeader : `${d.racePoints} pts`;
-                    return [d.name, displayGap];
-                }),
+                labels: rest.map(d => d.name),
                 datasets: [{
                     data: rest.map(d => d.racePoints),
                     backgroundColor: rest.map(d => TEAM_COLORS[d.team] || '#2a3f5f'),
@@ -306,6 +306,11 @@ function renderLatestRaceResults() {
             options: {
                 indexAxis: 'y',
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        right: 60
+                    }
+                },
                 plugins: { 
                     legend: { display: false },
                     tooltip: {
@@ -320,7 +325,13 @@ function renderLatestRaceResults() {
                 scales: {
                     x: { 
                         grid: { color: '#2a3f5f' }, 
-                        ticks: { color: '#e8e8e8' }
+                        ticks: { 
+                            color: '#e8e8e8',
+                            callback: function(value) {
+                                return value === xMax ? '' : value;
+                            }
+                        },
+                        max: xMax
                     },
                     y: { 
                         grid: { display: false }, 
@@ -331,7 +342,27 @@ function renderLatestRaceResults() {
                         } 
                     }
                 }
-            }
+            },
+            plugins: [{
+                id: 'rightLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    ctx.font = '600 11px "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+                    ctx.textBaseline = 'middle';
+                    
+                    rest.forEach((driver, index) => {
+                        const meta = chart.getDatasetMeta(0);
+                        const bar = meta.data[index];
+                        const gapText = driver.gapToLeader !== 'N/A' ? driver.gapToLeader : `${driver.racePoints} pts`;
+                        
+                        ctx.fillStyle = TEAM_COLORS[driver.team] || '#e8e8e8';
+                        ctx.fillText(gapText, bar.x + 8, bar.y + 1);
+                    });
+                    
+                    ctx.restore();
+                }
+            }]
         });
     }
 }
