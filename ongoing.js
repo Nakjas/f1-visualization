@@ -152,13 +152,23 @@ async function fetchSeasonData() {
 
         let rawGap = latestIntervals[d.driver_number];
         let gapStr = 'N/A';
+        let isDNF = false;
         
-        if (rawGap === 0 || rawGap === 0.0) {
+        if (rawGap === undefined || rawGap === null) {
+            gapStr = 'DNF';
+            isDNF = true;
+        } else if (rawGap === 0 || rawGap === 0.0) {
             gapStr = 'Leader';
         } else if (typeof rawGap === 'number') {
             gapStr = `+${rawGap.toFixed(3)}s`;
         } else if (typeof rawGap === 'string') {
-            gapStr = rawGap.startsWith('+') ? rawGap : `+${rawGap}`;
+            const up = rawGap.toUpperCase();
+            if (up === 'OUT' || up === 'STOP' || up === 'DNF' || up === 'DNS' || up === 'DNQ') {
+                gapStr = up;
+                isDNF = true;
+            } else {
+                gapStr = rawGap.startsWith('+') ? rawGap : `+${rawGap}`;
+            }
         }
 
         return {
@@ -169,6 +179,7 @@ async function fetchSeasonData() {
             seasonPoints: currentPts,
             racePoints: racePts,
             gapToLeader: gapStr,
+            isDNF: isDNF,
             position: index + 1
         };
     });
@@ -242,8 +253,14 @@ function renderBumpChart() {
 }
 
 function renderLatestRaceResults() {
-    const sorted = [...state.drivers].sort((a, b) => b.racePoints - a.racePoints);
-    if (sorted.length > 0) {
+    const sorted = [...state.drivers].sort((a, b) => {
+        if (b.racePoints !== a.racePoints) return b.racePoints - a.racePoints;
+        if (a.isDNF && !b.isDNF) return 1;
+        if (!a.isDNF && b.isDNF) return -1;
+        return a.position - b.position;
+    });
+
+    if (sorted.length > 0 && !sorted[0].isDNF) {
         sorted[0].gapToLeader = 'Leader';
     }
 
@@ -267,13 +284,13 @@ function renderLatestRaceResults() {
     const cont = document.getElementById('top5Container');
     if (cont) {
         cont.innerHTML = podiumOrder.map(item => {
-            const displayGap = item.driver.gapToLeader !== 'N/A' ? item.driver.gapToLeader : `${item.driver.racePoints} pts`;
+            const displayGap = item.driver.isDNF ? 'DNF' : (item.driver.gapToLeader !== 'N/A' ? item.driver.gapToLeader : `${item.driver.racePoints} pts`);
             return `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
                     <img src="${item.driver.headshot_url}" class="top5-car-img" alt="${item.driver.name}" onerror="this.src='placeholder_car.png'" />
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
-                    <span class="top5-points">${displayGap}</span>
+                    <span class="top5-points" style="color: ${TEAM_COLORS[item.driver.team] || 'var(--accent-yellow)'}">${displayGap}</span>
                 </div>
                 <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%"></div>
             </div>`;
@@ -308,7 +325,7 @@ function renderLatestRaceResults() {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        right: 60
+                        right: 80
                     }
                 },
                 plugins: { 
@@ -328,7 +345,7 @@ function renderLatestRaceResults() {
                         ticks: { 
                             color: '#e8e8e8',
                             callback: function(value) {
-                                return value === xMax ? '' : value;
+                                return value > maxRestVal ? '' : value;
                             }
                         },
                         max: xMax
@@ -354,7 +371,7 @@ function renderLatestRaceResults() {
                     rest.forEach((driver, index) => {
                         const meta = chart.getDatasetMeta(0);
                         const bar = meta.data[index];
-                        const gapText = driver.gapToLeader !== 'N/A' ? driver.gapToLeader : `${driver.racePoints} pts`;
+                        const gapText = driver.isDNF ? 'DNF' : (driver.gapToLeader !== 'N/A' ? driver.gapToLeader : `${driver.racePoints} pts`);
                         
                         ctx.fillStyle = TEAM_COLORS[driver.team] || '#e8e8e8';
                         ctx.fillText(gapText, bar.x + 8, bar.y + 1);
