@@ -7,9 +7,8 @@
 :root {
     --primary-dark: #0d1b2a;
     --secondary-dark: #1a2332;
-    --accent-red: #c41e3a;
+    --accent-blue: #117292;
     --accent-light: #e8e8e8;
-    --accent-yellow: #ffd700;
     --border-color: #2a3f5f;
 }
 
@@ -34,7 +33,7 @@ html, body {
 .header {
     text-align: center;
     padding: 40px 20px;
-    border-bottom: 3px solid var(--accent-red);
+    border-bottom: 3px solid var(--accent-blue);
     margin-bottom: 30px;
     background: linear-gradient(135deg, rgba(12, 27, 42, 0.8) 0%, rgba(26, 35, 50, 0.9) 100%);
     border-radius: 10px;
@@ -43,14 +42,14 @@ html, body {
 .header h1 {
     font-size: 3em;
     margin-bottom: 10px;
-    color: var(--accent-red);
+    color: var(--accent-blue);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     letter-spacing: 2px;
 }
 
 .subtitle {
     font-size: 1.2em;
-    color: var(--accent-yellow);
+    color: var(--accent-light);
     margin-bottom: 15px;
 }
 
@@ -69,7 +68,7 @@ html, body {
 
 .refresh-btn {
     padding: 10px 20px;
-    background-color: var(--accent-red);
+    background-color: var(--accent-blue);
     color: white;
     border: none;
     border-radius: 5px;
@@ -80,9 +79,9 @@ html, body {
 }
 
 .refresh-btn:hover {
-    background-color: #9b1830;
+    background-color: #0c5771; /* Darker shade of the accent blue */
     transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(196, 30, 58, 0.3);
+    box-shadow: 0 4px 8px rgba(17, 114, 146, 0.3);
 }
 
 .refresh-btn:active {
@@ -101,19 +100,10 @@ html, body {
     padding: 25px;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    border-left: 4px solid var(--accent-red);
     margin-bottom: 30px;
     display: flex;
     flex-direction: column;
     gap: 20px;
-}
-
-.bump-section h2 {
-    color: var(--accent-yellow);
-    border-bottom: 2px solid var(--accent-red);
-    margin-bottom: 10px;
-    font-size: 1.5em;
-    padding-bottom: 10px;
 }
 
 .main-content {
@@ -136,28 +126,13 @@ html, body {
     gap: 30px;
 }
 
-.charts-section {
-    border-left: 4px solid var(--accent-red);
-}
-
-.voting-section {
-    border-left: 4px solid var(--accent-yellow);
-}
-
-.charts-section h2, .voting-section h2 {
+/* Unify all H2 headers to match perfectly */
+.bump-section h2, .charts-section h2, .voting-section h2 {
+    color: var(--accent-light);
+    border-bottom: 2px solid var(--accent-blue);
     margin-bottom: 10px;
     font-size: 1.5em;
     padding-bottom: 10px;
-}
-
-.charts-section h2 {
-    color: var(--accent-yellow);
-    border-bottom: 2px solid var(--accent-red);
-}
-
-.voting-section h2 {
-    color: var(--accent-red);
-    border-bottom: 2px solid var(--accent-yellow);
 }
 
 .chart-container {
@@ -215,16 +190,17 @@ canvas {
 
 .top5-points {
     font-size: 0.75em;
-    color: var(--accent-yellow);
+    color: var(--accent-light);
 }
 
 .top5-bar {
     width: 100%;
-    background: linear-gradient(to top, var(--accent-red), #ff4d4d);
+    background: linear-gradient(to top, var(--accent-blue), #2ab3e0);
     border-radius: 4px 4px 0 0;
     transition: height 0.5s ease-out;
 }
 
+/* Keep the metallic colors for the podium */
 .pos-1 { background: linear-gradient(to top, #ffd700, #ffea70); }
 .pos-2 { background: linear-gradient(to top, #c0c0c0, #e0e0e0); }
 .pos-3 { background: linear-gradient(to top, #cd7f32, #e8a365); }
@@ -246,7 +222,7 @@ canvas {
 }
 
 .voting-card h3 {
-    color: var(--accent-yellow);
+    color: var(--accent-blue);
     text-align: center;
     font-size: 1.2em;
     margin-bottom: 10px;
@@ -262,7 +238,7 @@ canvas {
     padding: 10px 12px;
     background-color: #0d1b2a;
     color: var(--accent-light);
-    border: 2px solid var(--accent-red);
+    border: 2px solid var(--accent-blue);
     border-radius: 5px;
     font-size: 0.95em;
     cursor: pointer;
@@ -271,14 +247,14 @@ canvas {
 }
 
 .driver-select:hover {
-    border-color: var(--accent-yellow);
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 5px rgba(232, 232, 232, 0.2);
 }
 
 .driver-select:focus {
     outline: none;
-    border-color: var(--accent-yellow);
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+    border-color: var(--accent-light);
+    box-shadow: 0 0 8px rgba(232, 232, 232, 0.3);
 }
 
 .driver-select option {
@@ -288,7 +264,7 @@ canvas {
 
 .vote-submit-btn {
     padding: 12px 20px;
-    background-color: var(--accent-red);
+    background-color: var(--accent-blue);
     color: white;
     border: none;
     border-radius: 5px;
@@ -300,9 +276,9 @@ canvas {
 }
 
 .vote-submit-btn:hover:not(:disabled) {
-    background-color: #9b1830;
+    background-color: #0c5771;
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(196, 30, 58, 0.4);
+    box-shadow: 0 4px 10px rgba(17, 114, 146, 0.4);
 }
 
 .vote-submit-btn:active:not(:disabled) {
@@ -312,7 +288,7 @@ canvas {
 .vote-submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: #5a2a32;
+    background-color: #1c4456; /* Desaturated blue for disabled state */
 }
 
 .hidden {
@@ -341,7 +317,7 @@ canvas {
 }
 
 .stats-box span {
-    color: var(--accent-yellow);
+    color: var(--accent-light);
     font-weight: bold;
 }
 
@@ -389,13 +365,13 @@ canvas {
 }
 
 .footer a {
-    color: var(--accent-red);
+    color: var(--accent-blue);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
 .footer a:hover {
-    color: var(--accent-yellow);
+    color: var(--accent-light);
     text-decoration: underline;
 }
 
@@ -408,12 +384,12 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--accent-red);
+    background: var(--accent-blue);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-yellow);
+    background: var(--accent-light);
 }
 
 @keyframes fadeIn {

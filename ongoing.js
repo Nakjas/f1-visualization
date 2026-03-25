@@ -212,9 +212,6 @@ function renderBumpChart() {
             type: 'line',
             smooth: true,
             symbolSize: 8,
-            itemStyle: {
-                color: TEAM_COLORS[d.team] || '#e8e8e8'
-            },
             endLabel: {
                 show: true,
                 color: '#e8e8e8',
@@ -308,7 +305,7 @@ function renderLatestRaceResults() {
         if (state.chartInstances.restOfGrid) state.chartInstances.restOfGrid.destroy();
         
         const maxRestVal = Math.max(...rest.map(d => d.racePoints), 0);
-        const xMax = maxRestVal > 0 ? maxRestVal + 1 : 1;
+        const xMax = maxRestVal > 0 ? maxRestVal + 2 : 2;
 
         state.chartInstances.restOfGrid = new Chart(ctx, {
             type: 'bar',
