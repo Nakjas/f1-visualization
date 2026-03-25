@@ -237,7 +237,7 @@ canvas {
 }
 
 .voting-card h3 {
-    color: var(--accent-blue);
+    color: var(--accent-light);
     text-align: center;
     font-size: 1.2em;
     margin-bottom: 10px;
@@ -329,6 +329,7 @@ canvas {
     justify-content: space-between;
     align-items: center;
     font-size: 0.9em;
+    color: var(--accent-blue);
 }
 
 .stats-box span {
@@ -337,7 +338,7 @@ canvas {
 }
 
 .cooldown-timer {
-    color: var(--accent-light) !important;
+    color: var(--accent-blue) !important;
     font-size: 0.8em !important;
     text-align: center;
     justify-content: center !important;

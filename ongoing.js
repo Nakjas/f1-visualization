@@ -294,7 +294,7 @@ function renderLatestRaceResults() {
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
                     <span class="top5-points" style="color: ${tColor}">${displayGap}</span>
                 </div>
-                <div class="top5-bar" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%; background-color: ${tColor};"></div>
+                <div class="top5-bar" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%; background: ${tColor};"></div>
             </div>`;
         }).join('');
     }
