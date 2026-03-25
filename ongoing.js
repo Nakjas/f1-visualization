@@ -119,8 +119,25 @@ async function fetchSeasonData() {
     if (history.length === 0) return null;
 
     const latestRace = completedRaces[completedRaces.length - 1];
-    const driverRes = await fetch(`${CONFIG.API_BASE}/drivers?session_key=${latestRace.session_key}`);
+    
+    const [driverRes, intRes] = await Promise.all([
+        fetch(`${CONFIG.API_BASE}/drivers?session_key=${latestRace.session_key}`),
+        fetch(`${CONFIG.API_BASE}/intervals?session_key=${latestRace.session_key}`).catch(() => null)
+    ]);
+    
     const driversMetadata = await driverRes.json();
+    let latestIntervals = {};
+    
+    if (intRes && intRes.ok) {
+        const intData = await intRes.json();
+        if (Array.isArray(intData)) {
+            intData.forEach(interval => {
+                if (interval.gap_to_leader !== null && interval.gap_to_leader !== undefined) {
+                    latestIntervals[interval.driver_number] = interval.gap_to_leader;
+                }
+            });
+        }
+    }
 
     const latestChamp = history[history.length - 1].standings;
     
@@ -131,6 +148,18 @@ async function fetchSeasonData() {
         
         const currentPts = d.points ?? d.points_current ?? d.points_start ?? 0;
         const pastPts = prevData.points ?? prevData.points_current ?? prevData.points_start ?? 0;
+        const racePts = Math.max(0, currentPts - pastPts);
+
+        let rawGap = latestIntervals[d.driver_number];
+        let gapStr = 'N/A';
+        
+        if (rawGap === 0 || rawGap === 0.0) {
+            gapStr = 'Leader';
+        } else if (typeof rawGap === 'number') {
+            gapStr = `+${rawGap.toFixed(3)}s`;
+        } else if (typeof rawGap === 'string') {
+            gapStr = rawGap.startsWith('+') ? rawGap : `+${rawGap}`;
+        }
 
         return {
             driverId: String(d.driver_number),
@@ -138,7 +167,8 @@ async function fetchSeasonData() {
             team: meta.team_name || 'N/A',
             headshot_url: meta.headshot_url || 'placeholder_car.png', 
             seasonPoints: currentPts,
-            racePoints: Math.max(0, currentPts - pastPts),
+            racePoints: racePts,
+            gapToLeader: gapStr,
             position: index + 1
         };
     });
@@ -202,7 +232,7 @@ function renderBumpChart() {
             type: 'value',
             inverse: true,
             min: 1,
-            max: 20,
+            max: 10,
             interval: 1,
             axisLabel: { color: '#e8e8e8' },
             splitLine: { lineStyle: { color: '#2a3f5f' } }
@@ -213,6 +243,10 @@ function renderBumpChart() {
 
 function renderLatestRaceResults() {
     const sorted = [...state.drivers].sort((a, b) => b.racePoints - a.racePoints);
+    if (sorted.length > 0) {
+        sorted[0].gapToLeader = 'Leader';
+    }
+
     const p1 = sorted[0];
     const p2 = sorted[1];
     const p3 = sorted[2];
@@ -233,15 +267,18 @@ function renderLatestRaceResults() {
 
     const cont = document.getElementById('top5Container');
     if (cont) {
-        cont.innerHTML = podiumOrder.map(item => `
+        cont.innerHTML = podiumOrder.map(item => {
+            const displayGap = item.driver.gapToLeader !== 'N/A' ? item.driver.gapToLeader : `${item.driver.racePoints} pts`;
+            return `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
                     <img src="${item.driver.headshot_url}" class="top5-car-img" alt="${item.driver.name}" onerror="this.src='placeholder_car.png'" />
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
-                    <span class="top5-points">${item.driver.racePoints} pts</span>
+                    <span class="top5-points">${displayGap}</span>
                 </div>
                 <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%"></div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     const restWrapper = document.querySelector('.rest-of-grid-wrapper');
@@ -256,7 +293,10 @@ function renderLatestRaceResults() {
         state.chartInstances.restOfGrid = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: rest.map(d => d.name),
+                labels: rest.map(d => {
+                    const displayGap = d.gapToLeader !== 'N/A' ? d.gapToLeader : `${d.racePoints} pts`;
+                    return [d.name, displayGap];
+                }),
                 datasets: [{
                     data: rest.map(d => d.racePoints),
                     backgroundColor: rest.map(d => TEAM_COLORS[d.team] || '#2a3f5f'),
@@ -266,9 +306,22 @@ function renderLatestRaceResults() {
             options: {
                 indexAxis: 'y',
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const driver = rest[context.dataIndex];
+                                return `Points: ${driver.racePoints}`;
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    x: { grid: { color: '#2a3f5f' }, ticks: { color: '#e8e8e8' } },
+                    x: { 
+                        grid: { color: '#2a3f5f' }, 
+                        ticks: { color: '#e8e8e8' }
+                    },
                     y: { 
                         grid: { display: false }, 
                         ticks: { 
