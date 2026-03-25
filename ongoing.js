@@ -227,6 +227,8 @@ function renderLatestRaceResults() {
 
     const rest = sorted.slice(5);
 
+    const maxPoints = Math.max(...podiumOrder.map(item => item.driver.racePoints), 1);
+
     const cont = document.getElementById('top5Container');
     if (cont) {
         cont.innerHTML = podiumOrder.map(item => `
