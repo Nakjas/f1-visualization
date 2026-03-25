@@ -136,7 +136,6 @@ async function fetchSeasonData() {
             driverId: String(d.driver_number),
             name: `${meta.first_name || ''} ${meta.last_name || ''}`.trim() || `Driver ${d.driver_number}`,
             team: meta.team_name || 'N/A',
-            // Capture the headshot URL, defaulting to placeholder if it doesn't exist
             headshot_url: meta.headshot_url || 'placeholder_car.png', 
             seasonPoints: currentPts,
             racePoints: Math.max(0, currentPts - pastPts),
@@ -227,7 +226,7 @@ function renderLatestRaceResults() {
 
     const rest = sorted.slice(5);
 
-    const maxPoints = Math.max(...podiumOrder.map(item => item.driver.racePoints), 1);
+    const maxPts = p1 && p1.racePoints > 0 ? p1.racePoints : 25;
 
     const cont = document.getElementById('top5Container');
     if (cont) {
@@ -238,8 +237,13 @@ function renderLatestRaceResults() {
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
                     <span class="top5-points">${item.driver.racePoints} pts</span>
                 </div>
-                <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / 25) * 100, 15)}%"></div>
+                <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%"></div>
             </div>`).join('');
+    }
+
+    const restWrapper = document.querySelector('.rest-of-grid-wrapper');
+    if (restWrapper) {
+        restWrapper.style.height = '450px'; 
     }
 
     const canvas = document.getElementById('restOfGridChart');
@@ -258,10 +262,18 @@ function renderLatestRaceResults() {
             },
             options: {
                 indexAxis: 'y',
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { color: '#2a3f5f' }, ticks: { color: '#e8e8e8' } },
-                    y: { grid: { display: false }, ticks: { color: '#e8e8e8' } }
+                    y: { 
+                        grid: { display: false }, 
+                        ticks: { 
+                            color: '#e8e8e8',
+                            autoSkip: false,
+                            font: { size: 11 }
+                        } 
+                    }
                 }
             }
         });
@@ -334,7 +346,11 @@ function populateDriverSelects() {
         state.drivers.forEach(d => {
             const opt = document.createElement('option');
             opt.value = d.driverId;
-            opt.textContent = `${d.name}`;
+            opt.textContent = `${d.name} (${d.team})`;
+            if (TEAM_COLORS[d.team]) {
+                opt.style.color = TEAM_COLORS[d.team];
+                opt.style.fontWeight = '600';
+            }
             s.appendChild(opt);
         });
     });
