@@ -1,6 +1,6 @@
 const CONFIG = {
     API_BASE: 'https://api.openf1.org/v1',
-    REFRESH_INTERVAL: 60000, 
+    REFRESH_INTERVAL: 10000, 
     LOCAL_STORAGE_KEYS: {
         DRIVERS_DATA: 'f1_drivers_data',
         RACE_HISTORY: 'f1_race_history',

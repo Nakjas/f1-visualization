@@ -79,7 +79,7 @@ html, body {
 }
 
 .refresh-btn:hover {
-    background-color: #0c5771; /* Darker shade of the accent blue */
+    background-color: #0c5771;
     transform: scale(1.05);
     box-shadow: 0 4px 8px rgba(17, 114, 146, 0.3);
 }
@@ -100,6 +100,7 @@ html, body {
     padding: 25px;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-left: 4px solid var(--accent-blue);
     margin-bottom: 30px;
     display: flex;
     flex-direction: column;
@@ -126,13 +127,28 @@ html, body {
     gap: 30px;
 }
 
-/* Unify all H2 headers to match perfectly */
+.charts-section {
+    border-left: 4px solid var(--accent-blue);
+}
+
+.voting-section {
+    border-left: 4px solid var(--accent-light);
+}
+
 .bump-section h2, .charts-section h2, .voting-section h2 {
-    color: var(--accent-light);
-    border-bottom: 2px solid var(--accent-blue);
     margin-bottom: 10px;
     font-size: 1.5em;
     padding-bottom: 10px;
+}
+
+.bump-section h2, .charts-section h2 {
+    color: var(--accent-light);
+    border-bottom: 2px solid var(--accent-blue);
+}
+
+.voting-section h2 {
+    color: var(--accent-blue);
+    border-bottom: 2px solid var(--accent-light);
 }
 
 .chart-container {
@@ -200,7 +216,6 @@ canvas {
     transition: height 0.5s ease-out;
 }
 
-/* Keep the metallic colors for the podium */
 .pos-1 { background: linear-gradient(to top, #ffd700, #ffea70); }
 .pos-2 { background: linear-gradient(to top, #c0c0c0, #e0e0e0); }
 .pos-3 { background: linear-gradient(to top, #cd7f32, #e8a365); }
@@ -288,7 +303,7 @@ canvas {
 .vote-submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: #1c4456; /* Desaturated blue for disabled state */
+    background-color: #1c4456;
 }
 
 .hidden {
