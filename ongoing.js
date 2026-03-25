@@ -212,6 +212,9 @@ function renderBumpChart() {
             type: 'line',
             smooth: true,
             symbolSize: 8,
+            itemStyle: {
+                color: TEAM_COLORS[d.team] || '#117292'
+            },
             endLabel: {
                 show: true,
                 color: '#e8e8e8',
@@ -282,16 +285,16 @@ function renderLatestRaceResults() {
     if (cont) {
         cont.innerHTML = podiumOrder.map(item => {
             const displayGap = item.driver.isDNF ? 'DNF' : (item.driver.gapToLeader !== 'N/A' ? item.driver.gapToLeader : `${item.driver.racePoints} pts`);
-            const teamColor = TEAM_COLORS[item.driver.team] || 'var(--accent-blue)';
+            const tColor = TEAM_COLORS[item.driver.team] || '#117292';
             
             return `
             <div class="top5-bar-wrapper">
                 <div class="top5-info">
                     <img src="${item.driver.headshot_url}" class="top5-car-img" alt="${item.driver.name}" onerror="this.src='placeholder_car.png'" />
                     <span class="top5-driver-name">${item.driver.name.split(' ').pop()}</span>
-                    <span class="top5-points" style="color: ${TEAM_COLORS[item.driver.team] || 'var(--accent-yellow)'}">${displayGap}</span>
+                    <span class="top5-points" style="color: ${tColor}">${displayGap}</span>
                 </div>
-                <div class="top5-bar pos-${item.pos}" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%"></div>
+                <div class="top5-bar" style="height: ${Math.max((item.driver.racePoints / maxPts) * 55, 10)}%; background-color: ${tColor};"></div>
             </div>`;
         }).join('');
     }
@@ -315,7 +318,7 @@ function renderLatestRaceResults() {
                 labels: rest.map(d => d.name),
                 datasets: [{
                     data: rest.map(d => d.racePoints),
-                    backgroundColor: rest.map(d => TEAM_COLORS[d.team] || '#2a3f5f'),
+                    backgroundColor: rest.map(d => TEAM_COLORS[d.team] || '#117292'),
                     borderRadius: 4
                 }]
             },
@@ -344,7 +347,7 @@ function renderLatestRaceResults() {
                         ticks: { 
                             color: '#e8e8e8',
                             callback: function(value) {
-                                return value > maxRestVal ? '' : value;
+                                return value === xMax ? '' : value;
                             }
                         },
                         max: xMax
@@ -372,7 +375,7 @@ function renderLatestRaceResults() {
                         const bar = meta.data[index];
                         const gapText = driver.isDNF ? 'DNF' : (driver.gapToLeader !== 'N/A' ? driver.gapToLeader : `${driver.racePoints} pts`);
                         
-                        ctx.fillStyle = TEAM_COLORS[driver.team] || '#e8e8e8';
+                        ctx.fillStyle = TEAM_COLORS[driver.team] || '#117292';
                         ctx.fillText(gapText, bar.x + 8, bar.y + 1);
                     });
                     
@@ -392,7 +395,7 @@ function getDriverTeamColor(driverName) {
     if (driver && driver.team && TEAM_COLORS[driver.team]) {
         return TEAM_COLORS[driver.team];
     }
-    return '#c41e3a';
+    return '#117292';
 }
 
 function renderVotingChart(category) {
@@ -418,7 +421,7 @@ function renderVotingChart(category) {
     if (userSpan) {
         const userVoted = state.userVotes[category];
         userSpan.textContent = userVoted ? userVoted.driverName : 'Not voted';
-        userSpan.style.color = userVoted ? 'var(--accent-yellow)' : '#888';
+        userSpan.style.color = userVoted ? 'var(--accent-blue)' : '#888';
     }
     
     state.chartInstances[chartKey] = new Chart(ctx, {
